@@ -3,7 +3,7 @@ name: Debug build
 on:
   push:
     branches:
-      - v2
+      - master
     paths:
       - '**.go'
   workflow_dispatch:
