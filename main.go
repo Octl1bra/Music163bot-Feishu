@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Octl1bra/Music163bot-Feishu/bot"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,17 +52,12 @@ func init() {
 	logrus.SetOutput(output)
 
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	_ConfigPath = f.String("c", "config.ini", "配置文件")
+	_ConfigPath = f.String("e", ".env", "env 文件路径 (不存在时仅读取环境变量)")
 	_ = f.Parse(os.Args[1:])
 
 	logrus.Printf("Music163bot-Feishu %s", _VersionName)
 
-	conf, err := readConfig(*_ConfigPath)
-	if err != nil {
-		logrus.Errorln("读取配置文件失败，请检查配置文件")
-		logrus.Fatal(err)
-	}
-	config = conf
+	config = readConfig(*_ConfigPath)
 	initConfig(config)
 
 	if config["LogLevel"] != "" {
@@ -84,43 +79,38 @@ func main() {
 	}
 }
 
-func readConfig(path string) (config map[string]string, err error) {
-	config = make(map[string]string)
-	f, err := os.Open(path)
-	if err != nil {
-		return config, err
+// envKeys 环境变量名 -> bot 包内部配置键
+var envKeys = map[string]string{
+	"APP_ID":           "APP_ID",
+	"APP_SECRET":       "APP_SECRET",
+	"MUSIC_U":          "MUSIC_U",
+	"BOT_ADMIN":        "BotAdmin",
+	"BOT_DEBUG":        "BotDebug",
+	"DATABASE":         "Database",
+	"LOG_LEVEL":        "LogLevel",
+	"MAX_RETRY_TIMES":  "MaxRetryTimes",
+	"DOWNLOAD_TIMEOUT": "DownloadTimeout",
+	"REVERSE_PROXY":    "ReverseProxy",
+	"OPUS_BITRATE":     "OpusBitrate",
+	"OPUS_SAMPLE_RATE": "OpusSampleRate",
+	"OPUS_CHANNELS":    "OpusChannels",
+}
+
+// readConfig 读取配置: 环境变量优先, .env 文件兜底 (godotenv.Load 不覆盖已存在的环境变量)
+func readConfig(path string) map[string]string {
+	if _, err := os.Stat(path); err == nil {
+		if err := godotenv.Load(path); err != nil {
+			logrus.Errorln("读取 env 文件失败，请检查文件格式")
+			logrus.Fatal(err)
+		}
 	}
-	defer func(f *os.File) {
-		e := f.Close()
-		if e != nil {
-			err = e
+	config := make(map[string]string)
+	for env, key := range envKeys {
+		if value := strings.TrimSpace(os.Getenv(env)); value != "" {
+			config[key] = value
 		}
-	}(f)
-	r := bufio.NewReader(f)
-	for {
-		b, _, err := r.ReadLine()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return config, err
-		}
-		s := strings.TrimSpace(string(b))
-		index := strings.Index(s, "=")
-		if index < 0 {
-			continue
-		}
-		key := strings.TrimSpace(s[:index])
-		if len(key) == 0 {
-			continue
-		}
-		value := strings.TrimSpace(s[index+1:])
-		if len(value) == 0 {
-			continue
-		}
-		config[key] = value
 	}
-	return config, err
+	return config
 }
 
 func dirExists(path string) bool {

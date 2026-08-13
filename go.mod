@@ -9,6 +9,7 @@ require (
 	github.com/XiaoMengXinX/Music163Api-Go v0.1.30
 	github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20241104184306-5642193c58ed
 	github.com/glebarez/sqlite v1.11.0
+	github.com/joho/godotenv v1.5.1
 	github.com/larksuite/oapi-sdk-go/v3 v3.9.10
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/sirupsen/logrus v1.9.3

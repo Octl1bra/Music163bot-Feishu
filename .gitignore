@@ -27,4 +27,4 @@ config.ini
 /cache
 /test
 *.mp3
-*.flac
+*.flac.env

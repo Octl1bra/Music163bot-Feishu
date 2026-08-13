@@ -68,7 +68,7 @@ func Start(conf map[string]string) (actionCode int) {
 	}
 
 	if config["APP_ID"] == "" || config["APP_SECRET"] == "" {
-		logrus.Errorln("请在配置文件中填写 APP_ID 与 APP_SECRET")
+		logrus.Errorln("请通过环境变量或 .env 文件配置 APP_ID 与 APP_SECRET")
 		return 1
 	}
 

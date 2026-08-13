@@ -66,14 +66,20 @@
 
 ### 5. 填写配置
 
-在「凭证与基础信息」页面获取 App ID 和 App Secret，填入 `config.ini`：
+配置通过环境变量读取，本地开发可放在 `.env` 文件（环境变量优先，`.env` 兜底）。在「凭证与基础信息」页面获取 App ID 和 App Secret：
 
-```ini
-APP_ID = cli_xxxxxxxxxxxxxxxxx
-APP_SECRET = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```bash
+cp .env.example .env
 ```
 
-`BotAdmin` 填管理员的 open_id（`ou_` 开头，逗号分隔）。open_id 是应用维度的，最简单的获取方式：配置里临时设 `BotDebug = true` 启动，给 bot 发一条消息，日志中事件内容里的 `sender.sender_id.open_id` 即是。
+```dotenv
+APP_ID=cli_xxxxxxxxxxxxxxxxx
+APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+全部可用变量见 [.env.example](.env.example)。`BOT_ADMIN` 填管理员的 open_id（`ou_` 开头，逗号分隔）。open_id 是应用维度的，最简单的获取方式：临时设 `BOT_DEBUG=true` 启动，给 bot 发一条消息，日志中事件内容里的 `sender.sender_id.open_id` 即是。
+
+使用 [1Password CLI](https://developer.1password.com/docs/cli/secrets-environment-variables/) 时可让密钥不落盘：`.env` 中填 `op://` 引用，用 `op run --env-file .env -- ./Music163bot-Feishu` 启动。
 
 ### 频率限制参考
 
@@ -88,14 +94,14 @@ APP_SECRET = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 git clone https://github.com/Octl1bra/Music163bot-Feishu
 cd Music163bot-Feishu
 bash build.sh
-cp config_example.ini config.ini  # 填写配置
-./Music163bot-Feishu -c config.ini
+cp .env.example .env  # 填写配置
+./Music163bot-Feishu  # 或 -e 指定 env 文件路径
 ```
 
-或使用 docker compose（镜像内置 ffmpeg）：
+或使用 docker compose（镜像内置 ffmpeg，配置经 env_file 注入）：
 
 ```bash
-cp config_example.ini config.ini  # 填写配置
+cp .env.example .env  # 填写配置
 docker compose up -d
 ```
 
