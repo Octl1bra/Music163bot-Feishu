@@ -8,10 +8,10 @@ RUN bash build.sh
 
 FROM alpine:3.21 AS runner
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates ffmpeg
 
 WORKDIR /app
 
-COPY --from=builder /build/Music163bot-Go .
+COPY --from=builder /build/Music163bot-Feishu .
 
-CMD [ "./Music163bot-Go" ]
+CMD [ "./Music163bot-Feishu" ]

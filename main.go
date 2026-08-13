@@ -11,19 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoMengXinX/Music163bot-Go/v2/bot"
+	"github.com/Octl1bra/Music163bot-Feishu/bot"
 	"github.com/sirupsen/logrus"
 )
 
 var config map[string]string
 
-var (
-	_ConfigPath *string
-	_NoUpdate   *bool
-	_NoMD5Check *bool
-	_SrcPath    *string
-	_BotEntry   *string
-)
+var _ConfigPath *string
 
 var (
 	runtimeVer   = fmt.Sprintf(runtime.Version())                     // 编译环境
@@ -31,8 +25,6 @@ var (
 	commitSHA    = ""                                                 // 编译哈希
 	buildTime    = ""                                                 // 编译日期
 	buildArch    = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH) // 运行环境
-	repoPath     = ""                                                 // 项目地址
-	rawRepoPath  = ""
 )
 
 // LogFormatter 自定义 log 格式
@@ -47,12 +39,6 @@ func (s *LogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 }
 
 func init() {
-	logrus.SetFormatter(&logrus.TextFormatter{
-		DisableColors:          false,
-		FullTimestamp:          true,
-		DisableLevelTruncation: true,
-		PadLevelText:           true,
-	})
 	logrus.SetFormatter(new(LogFormatter))
 	logrus.SetReportCaller(true)
 	dirExists("./log")
@@ -64,24 +50,12 @@ func init() {
 	}
 	output := io.MultiWriter(os.Stdout, file)
 	logrus.SetOutput(output)
-	if config["LogLevel"] != "" {
-		level, err := logrus.ParseLevel(config["LogLevel"])
-		if err != nil {
-			logrus.Errorln(err)
-		} else {
-			logrus.SetLevel(level)
-		}
-	}
 
 	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	_ConfigPath = f.String("c", "config.ini", "配置文件")
-	_NoUpdate = f.Bool("no-update", false, "关闭更新检测")
-	_NoMD5Check = f.Bool("no-md5-check", false, "关闭 md5 效验")
-	_SrcPath = f.String("path", "./src", "自定义更新下载/加载路径")
-	_BotEntry = f.String("bot-entry", "bot.Start", "自定义动态加载入口")
 	_ = f.Parse(os.Args[1:])
 
-	logrus.Printf("Music163bot-Go %s", _VersionName)
+	logrus.Printf("Music163bot-Feishu %s", _VersionName)
 
 	conf, err := readConfig(*_ConfigPath)
 	if err != nil {
@@ -90,34 +64,23 @@ func init() {
 	}
 	config = conf
 	initConfig(config)
+
+	if config["LogLevel"] != "" {
+		level, err := logrus.ParseLevel(config["LogLevel"])
+		if err != nil {
+			logrus.Errorln(err)
+		} else {
+			logrus.SetLevel(level)
+		}
+	}
 }
 
 func main() {
-	var actionCode = -1 // actionCode: 0 exit, 1 error exit, 2 reload src, 3 update src
-
-	for true {
-		logrus.Printf("加载内置版本 %s 中", _VersionName)
-		actionCode = bot.Start(config)
-		switch actionCode {
-		case 0:
-			os.Exit(0)
-		case 1:
-			logrus.Fatal("Unexpected error")
-		case 2:
-			time.Sleep(2 * time.Second)
-			conf, err := readConfig(*_ConfigPath)
-			if err != nil {
-				logrus.Errorln(err)
-				logrus.Fatal("读取配置文件失败，请检查配置文件")
-			} else {
-				config = conf
-				initConfig(config)
-			}
-			continue
-		case 3:
-			time.Sleep(2 * time.Second)
-			continue
-		}
+	switch bot.Start(config) {
+	case 1:
+		logrus.Fatal("Unexpected error")
+	default:
+		os.Exit(0)
 	}
 }
 
@@ -182,24 +145,4 @@ func initConfig(config map[string]string) {
 	config["buildTime"] = buildTime
 	config["commitSHA"] = commitSHA
 	config["buildArch"] = buildArch
-	config["repoPath"] = repoPath
-	config["rawRepoPath"] = rawRepoPath
-	if *_NoUpdate {
-		config["AutoUpdate"] = "false"
-	} else if config["AutoUpdate"] == "false" {
-		*_NoUpdate = true
-	}
-	if *_NoMD5Check {
-		config["CheckMD5"] = "false"
-	} else if config["CheckMD5"] == "false" {
-		*_NoMD5Check = true
-	}
-	if config["SrcPath"] != "" {
-		*_SrcPath = config["SrcPath"]
-	} else {
-		config["SrcPath"] = *_SrcPath
-	}
-	if config["BotEntry"] != "" {
-		*_BotEntry = config["BotEntry"]
-	}
 }

@@ -19,13 +19,12 @@ type SongInfo struct {
 	PicSize      int
 	EmbPicSize   int
 	BitRate      int
-	Duration     int
-	FileID       string
-	ThumbFileID  string
-	FromUserID   int64
-	FromUserName string
-	FromChatID   int64
-	FromChatName string
+	Duration     int    // 秒
+	FileKey      string // 文件消息 file_key
+	VoiceFileKey string // 语音消息 file_key
+	ImageKey     string // 封面 image_key
+	FromUserID   string // open_id
+	FromChatID   string // chat_id
 }
 
 func initDB(config map[string]string) (err error) {

@@ -9,50 +9,36 @@ import (
 
 	"github.com/XiaoMengXinX/Music163Api-Go/api"
 	"github.com/XiaoMengXinX/Music163Api-Go/types"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
 )
 
-func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
-	var msgResult tgbotapi.Message
+func processLyric(args string, msg incomingMsg) (err error) {
+	var progressMsgID string
 	sendFailed := func() {
-		editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, fmt.Sprintf(getLrcFailed))
-		_, err = bot.Send(editMsg)
-		if err != nil {
-			logrus.Errorln(err)
+		if progressMsgID != "" {
+			logErr(patchCard(progressMsgID, errorCard(getLrcFailed, args)))
+		} else {
+			_, e := replyText(msg, getLrcFailed)
+			logErr(e)
 		}
 	}
-	if message.CommandArguments() == "" && message.ReplyToMessage == nil {
-		msg := tgbotapi.NewMessage(message.Chat.ID, inputContent)
-		msg.ReplyToMessageID = message.MessageID
-		_, err = bot.Send(msg)
+	if args == "" {
+		_, err = replyText(msg, inputContent)
 		return err
-	} else if message.CommandArguments() == "" && message.ReplyToMessage != nil {
-		message = *message.ReplyToMessage
-		if !message.IsCommand() && len(message.Entities) != 0 {
-			message.Entities[0].Type = "bot_command"
-			message.Entities[0].Length = -1
-			message.Entities[0].Offset = 0
-		} else if !message.IsCommand() && len(message.Entities) == 0 {
-			message.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Length: -1, Offset: 0}}
-		}
 	}
-	msg := tgbotapi.NewMessage(message.Chat.ID, fetchingLyric)
-	msg.ReplyToMessageID = message.MessageID
-	msgResult, err = bot.Send(msg)
+	progressMsgID, err = replyCard(msg, progressCard(fetchingLyric, args))
 	if err != nil {
 		return err
 	}
 
-	musicID := parseMusicID(message.CommandArguments())
+	musicID := parseMusicID(args)
 	if musicID == 0 {
 		searchResult, _ := api.SearchSong(data, api.SearchSongConfig{
-			Keyword: message.CommandArguments(),
+			Keyword: args,
 			Limit:   5,
 		})
 		if len(searchResult.Result.Songs) == 0 {
-			editMsg := tgbotapi.NewEditMessageText(msgResult.Chat.ID, msgResult.MessageID, noResults)
-			_, err = bot.Send(editMsg)
+			logErr(patchCard(progressMsgID, errorCard(noResults, args)))
 			return err
 		}
 		musicID = searchResult.Result.Songs[0].Id
@@ -78,22 +64,22 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 
 	if lyric.Lrc.Lyric != "" && len(detail.Songs) != 0 {
 		var replacer = strings.NewReplacer("/", " ", "?", " ", "*", " ", ":", " ", "|", " ", "\\", " ", "<", " ", ">", " ", "\"", " ")
-		lrcPath := fmt.Sprintf("%s/%s - %s.lrc", cacheDir, replacer.Replace(parseArtist(detail.Songs[0])), replacer.Replace(detail.Songs[0].Name))
+		lrcName := fmt.Sprintf("%s - %s.lrc", replacer.Replace(parseArtist(detail.Songs[0])), replacer.Replace(detail.Songs[0].Name))
+		lrcPath := fmt.Sprintf("%s/%s", cacheDir, lrcName)
 		file, err := os.OpenFile(lrcPath, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			sendFailed()
 			return err
-		} else {
-			defer func(file *os.File) {
-				_ = file.Close()
-			}(file)
-			write := bufio.NewWriter(file)
-			_, _ = write.WriteString(lyric.Lrc.Lyric)
-			err = write.Flush()
-			if err != nil {
-				sendFailed()
-				return err
-			}
+		}
+		defer func(file *os.File) {
+			_ = file.Close()
+		}(file)
+		write := bufio.NewWriter(file)
+		_, _ = write.WriteString(lyric.Lrc.Lyric)
+		err = write.Flush()
+		if err != nil {
+			sendFailed()
+			return err
 		}
 		defer func(name string) {
 			err := os.Remove(name)
@@ -101,16 +87,17 @@ func processLyric(message tgbotapi.Message, bot *tgbotapi.BotAPI) (err error) {
 				logrus.Errorln(err)
 			}
 		}(lrcPath)
-		var newFile tgbotapi.DocumentConfig
-		newFile = tgbotapi.NewDocument(message.Chat.ID, tgbotapi.FilePath(lrcPath))
-		newFile.ReplyToMessageID = message.MessageID
-		_, err = bot.Send(newFile)
+
+		fileKey, err := uploadIMFile(lrcPath, "stream", lrcName, 0)
+		if err != nil {
+			sendFailed()
+			return err
+		}
+		_, err = replyFile(msg, fileKey)
 		if err != nil {
 			return err
 		}
-		deleteMsg := tgbotapi.NewDeleteMessage(msgResult.Chat.ID, msgResult.MessageID)
-		_, err = bot.Request(deleteMsg)
-		return err
+		return deleteMessage(progressMsgID)
 	}
 	sendFailed()
 	return

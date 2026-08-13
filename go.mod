@@ -1,4 +1,4 @@
-module github.com/XiaoMengXinX/Music163bot-Go/v2
+module github.com/Octl1bra/Music163bot-Feishu
 
 go 1.22.0
 
@@ -9,7 +9,7 @@ require (
 	github.com/XiaoMengXinX/Music163Api-Go v0.1.30
 	github.com/XiaoMengXinX/SimpleDownloader v0.0.0-20241104184306-5642193c58ed
 	github.com/glebarez/sqlite v1.11.0
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/larksuite/oapi-sdk-go/v3 v3.9.10
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/sirupsen/logrus v1.9.3
 	gorm.io/gorm v1.25.12
@@ -22,7 +22,9 @@ require (
 	github.com/go-flac/flacpicture v0.3.0 // indirect
 	github.com/go-flac/flacvorbis v0.2.0 // indirect
 	github.com/go-flac/go-flac v1.0.0 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

@@ -28,5 +28,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Music163bot-Go
-          path: Music163bot-Go
+          name: Music163bot-Feishu
+          path: Music163bot-Feishu
