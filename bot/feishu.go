@@ -7,8 +7,36 @@ import (
 	"io"
 	"os"
 
+	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 )
+
+// botOpenID 机器人自身的 open_id, 用于判断群消息是否 @ 了机器人
+var botOpenID string
+
+// fetchBotInfo 获取机器人自身信息 (open_id)
+func fetchBotInfo() error {
+	resp, err := larkClient.Get(context.Background(), "/open-apis/bot/v3/info", nil, larkcore.AccessTokenTypeTenant)
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Bot  struct {
+			OpenID  string `json:"open_id"`
+			AppName string `json:"app_name"`
+		} `json:"bot"`
+	}
+	if err = json.Unmarshal(resp.RawBody, &result); err != nil {
+		return err
+	}
+	if result.Code != 0 {
+		return fmt.Errorf("获取机器人信息失败: %s", result.Msg)
+	}
+	botOpenID = result.Bot.OpenID
+	return nil
+}
 
 // incomingMsg 统一的入站消息上下文
 type incomingMsg struct {

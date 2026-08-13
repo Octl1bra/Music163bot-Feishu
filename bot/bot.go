@@ -93,6 +93,10 @@ func Start(conf map[string]string) (actionCode int) {
 		larkws.WithLogLevel(logLevel),
 	)
 
+	if err = fetchBotInfo(); err != nil {
+		logrus.Errorf("获取机器人 open_id 失败, 群内 @ 直达功能不可用: %v", err)
+	}
+
 	logrus.Println("正在建立飞书长连接...")
 	err = wsClient.Start(context.Background())
 	if err != nil {
@@ -130,7 +134,23 @@ func handleMessage(event *larkim.P2MessageReceiveV1) {
 	if event.Event.Sender != nil && event.Event.Sender.SenderId != nil {
 		msg.SenderOpenID = strVal(event.Event.Sender.SenderId.OpenId)
 	}
+
+	// 判断群消息是否 @ 了机器人
+	mentionedBot := false
+	if botOpenID != "" {
+		for _, mention := range m.Mentions {
+			if mention.Id != nil && strVal(mention.Id.OpenId) == botOpenID {
+				mentionedBot = true
+				break
+			}
+		}
+	}
+
 	if msg.Text == "" {
+		if mentionedBot { // 只 @ 机器人不带内容, 回复使用说明
+			_, err := replyText(msg, helpText)
+			logErr(err)
+		}
 		return
 	}
 
@@ -153,6 +173,12 @@ func handleMessage(event *larkim.P2MessageReceiveV1) {
 				logErr(processMusic(id, modeVoice, msg))
 			}
 		}
+		return
+	}
+
+	// 群里 @ 机器人 + 关键词/ID, 省略 /music 直接点歌
+	if msg.ChatType == "group" && mentionedBot {
+		logErr(processAnyMusic(msg.Text, modeVoice, msg))
 		return
 	}
 

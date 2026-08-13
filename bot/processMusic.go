@@ -101,16 +101,15 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 		<-musicLimiter
 	}()
 
-	// 拿到执行权后再查一次缓存, 避免重复下载
+	// 拿到执行权后再查一次缓存, 避免重复下载; 进度卡片直接变为信息卡片, 保持先卡片后音乐
 	err = db.Where("music_id = ?", musicID).First(&songInfo).Error
 	if err == nil && hasCachedKey(songInfo, mode) {
-		logErr(patchCard(progressMsgID, progressCard(hitCache, fmt.Sprintf("%s - %s", songInfo.SongName, songInfo.SongArtists))))
-		err = sendCachedMusic(songInfo, mode, msg)
+		logErr(patchCard(progressMsgID, infoCard(songInfo)))
+		err = sendMusicMessage(songInfo, mode, msg)
 		if err != nil {
 			sendFailed(err)
-			return err
 		}
-		return deleteMessage(progressMsgID)
+		return err
 	}
 	cacheHit := err == nil // 记录已存在但缺少当前发送方式的 file_key
 
@@ -400,14 +399,15 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 		logrus.Errorln(err)
 	}
 
+	// 进度卡片先更新为歌曲信息卡片, 再发送音乐, 统一先文字后音乐的顺序
+	logErr(patchCard(progressMsgID, infoCard(songInfo)))
+
 	err = sendMusicMessage(songInfo, mode, msg)
 	if err != nil {
 		sendFailed(err)
 		return err
 	}
-
-	// 进度卡片更新为歌曲信息卡片
-	return patchCard(progressMsgID, infoCard(songInfo))
+	return nil
 }
 
 // hasCachedKey 判断缓存记录是否包含当前发送方式的 file_key
@@ -428,14 +428,13 @@ func sendMusicMessage(songInfo SongInfo, mode string, msg incomingMsg) (err erro
 	return err
 }
 
-// sendCachedMusic 缓存命中时发送歌曲消息与信息卡片
+// sendCachedMusic 缓存命中时发送信息卡片与歌曲消息, 统一先卡片后音乐
 func sendCachedMusic(songInfo SongInfo, mode string, msg incomingMsg) (err error) {
-	err = sendMusicMessage(songInfo, mode, msg)
+	_, err = replyCard(msg, infoCard(songInfo))
 	if err != nil {
 		return err
 	}
-	_, err = replyCard(msg, infoCard(songInfo))
-	return err
+	return sendMusicMessage(songInfo, mode, msg)
 }
 
 // ffmpegExists 检查 ffmpeg 是否可用

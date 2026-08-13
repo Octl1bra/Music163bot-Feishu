@@ -107,5 +107,6 @@ Github: https://github.com/Octl1bra/Music163bot-Feishu
 /status - 统计信息
 
 群聊中默认以话题形式回复, 命令加 -here 后缀改为直接回复 (如 /music-here)
+群聊中 @ 机器人 + 关键词/ID 可省略 /music 直接点歌
 也可以直接发送网易云歌曲分享链接`
 )
