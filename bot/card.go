@@ -6,6 +6,11 @@ import (
 )
 
 // cardJSON 序列化卡片
+// albumPicEnabled 是否在信息卡片中展示专辑封面
+func albumPicEnabled() bool {
+	return config["AlbumPic"] == "true"
+}
+
 func cardJSON(card map[string]interface{}) string {
 	b, _ := json.Marshal(card)
 	return string(b)
@@ -52,8 +57,12 @@ func errorCard(title, body string) string {
 	})
 }
 
-// infoCard 歌曲信息卡片
-func infoCard(songInfo SongInfo, imageKey string) string {
+// infoCard 歌曲信息卡片; 封面默认禁用, ALBUM_PIC=true 开启
+func infoCard(songInfo SongInfo) string {
+	imageKey := ""
+	if albumPicEnabled() {
+		imageKey = songInfo.ImageKey
+	}
 	elements := []interface{}{}
 	if imageKey != "" {
 		elements = append(elements, map[string]interface{}{

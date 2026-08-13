@@ -286,8 +286,8 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 		return err
 	}
 
-	// 上传封面图用于信息卡片
-	if songInfo.ImageKey == "" && picPath != "" {
+	// 上传封面图用于信息卡片 (默认禁用, ALBUM_PIC=true 开启)
+	if albumPicEnabled() && songInfo.ImageKey == "" && picPath != "" {
 		imageKey, err := uploadIMImage(picPath)
 		if err != nil {
 			logrus.Errorln(err)
@@ -368,7 +368,7 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 	}
 
 	// 进度卡片更新为歌曲信息卡片
-	return patchCard(progressMsgID, infoCard(songInfo, songInfo.ImageKey))
+	return patchCard(progressMsgID, infoCard(songInfo))
 }
 
 // hasCachedKey 判断缓存记录是否包含当前发送方式的 file_key
@@ -395,7 +395,7 @@ func sendCachedMusic(songInfo SongInfo, mode string, msg incomingMsg) (err error
 	if err != nil {
 		return err
 	}
-	_, err = replyCard(msg, infoCard(songInfo, songInfo.ImageKey))
+	_, err = replyCard(msg, infoCard(songInfo))
 	return err
 }
 

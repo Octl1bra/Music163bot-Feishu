@@ -91,6 +91,7 @@ var envKeys = map[string]string{
 	"MAX_RETRY_TIMES":  "MaxRetryTimes",
 	"DOWNLOAD_TIMEOUT": "DownloadTimeout",
 	"REVERSE_PROXY":    "ReverseProxy",
+	"ALBUM_PIC":        "AlbumPic",
 	"OPUS_BITRATE":     "OpusBitrate",
 	"OPUS_SAMPLE_RATE": "OpusSampleRate",
 	"OPUS_CHANNELS":    "OpusChannels",
