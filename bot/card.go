@@ -72,10 +72,14 @@ func infoCard(songInfo SongInfo) string {
 			"mode":    "crop_center",
 		})
 	}
+	quality := ""
+	if songInfo.Quality != "" {
+		quality = fmt.Sprintf("\n**音质:** %s", songInfo.Quality)
+	}
 	elements = append(elements,
-		cardText(fmt.Sprintf("**歌手:** %s\n**专辑:** %s\n**格式:** %s %.2fMB %.2fkbps",
+		cardText(fmt.Sprintf("**歌手:** %s\n**专辑:** %s\n**格式:** %s %.2fMB %.2fkbps%s",
 			songInfo.SongArtists, songInfo.SongAlbum, songInfo.FileExt,
-			float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000)),
+			float64(songInfo.MusicSize+songInfo.EmbPicSize)/1024/1024, float64(songInfo.BitRate)/1000, quality)),
 		map[string]interface{}{
 			"tag": "action",
 			"actions": []interface{}{
@@ -102,7 +106,7 @@ type searchItem struct {
 }
 
 // searchCard 搜索结果卡片, 每首歌提供语音/文件两种发送按钮
-func searchCard(keyword string, items []searchItem) string {
+func searchCard(keyword string, items []searchItem, chatType string) string {
 	var listText string
 	var voiceButtons, fileButtons []interface{}
 	for i, item := range items {
@@ -115,6 +119,7 @@ func searchCard(keyword string, items []searchItem) string {
 				"action": "music",
 				"id":     fmt.Sprintf("%d", item.MusicID),
 				"mode":   modeVoice,
+				"ctype":  chatType,
 			},
 		})
 		fileButtons = append(fileButtons, map[string]interface{}{
@@ -125,6 +130,7 @@ func searchCard(keyword string, items []searchItem) string {
 				"action": "music",
 				"id":     fmt.Sprintf("%d", item.MusicID),
 				"mode":   modeFile,
+				"ctype":  chatType,
 			},
 		})
 	}

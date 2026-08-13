@@ -165,6 +165,12 @@ func handleCommand(msg incomingMsg) {
 	command := strings.TrimPrefix(fields[0], "/")
 	args := strings.TrimSpace(strings.TrimPrefix(msg.Text, fields[0]))
 
+	// "-here" 后缀: 直接回复而非话题回复, 如 /music-here
+	if strings.HasSuffix(command, "-here") {
+		command = strings.TrimSuffix(command, "-here")
+		msg.Direct = true
+	}
+
 	switch command {
 	case "music", "netease":
 		logErr(processAnyMusic(args, modeVoice, msg))
@@ -225,6 +231,7 @@ func handleCardAction(event *callback.CardActionTriggerEvent) (*callback.CardAct
 	msg := incomingMsg{
 		MessageID: event.Event.Context.OpenMessageID,
 		ChatID:    event.Event.Context.OpenChatID,
+		ChatType:  strFromAny(value["ctype"]),
 	}
 	if event.Event.Operator != nil {
 		msg.SenderOpenID = event.Event.Operator.OpenID

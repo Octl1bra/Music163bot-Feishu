@@ -18,6 +18,7 @@ type incomingMsg struct {
 	SenderOpenID string
 	Text         string // 去除 @ 占位符后的纯文本
 	ParentID     string // 被回复消息的 ID
+	Direct       bool   // true 时群聊中直接回复而非话题回复 (-here 后缀)
 }
 
 // textContent 序列化文本消息内容
@@ -50,11 +51,13 @@ func replyMessage(msg incomingMsg, msgType, content string) (string, error) {
 	if msg.MessageID == "" {
 		return sendMessage(msg.ChatID, msgType, content)
 	}
+	// 群聊中以话题形式回复, 避免刷屏
 	resp, err := larkClient.Im.V1.Message.Reply(context.Background(), larkim.NewReplyMessageReqBuilder().
 		MessageId(msg.MessageID).
 		Body(larkim.NewReplyMessageReqBodyBuilder().
 			MsgType(msgType).
 			Content(content).
+			ReplyInThread(msg.ChatType == "group" && !msg.Direct).
 			Build()).
 		Build())
 	if err != nil {

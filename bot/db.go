@@ -19,6 +19,7 @@ type SongInfo struct {
 	PicSize      int
 	EmbPicSize   int
 	BitRate      int
+	Quality      string // 音质等级 (展示名)
 	Duration     int    // 秒
 	FileKey      string // 文件消息 file_key
 	VoiceFileKey string // 语音消息 file_key

@@ -26,6 +26,26 @@ var musicLimiter = make(chan bool, 4)
 // 飞书 IM 文件上传上限
 const maxIMFileSize = 30 * 1024 * 1024
 
+// qualityLevels 音质阶梯, 从高到低; 文件方式默认请求最高, 按预估大小逐级降级
+var qualityLevels = []string{"jymaster", "hires", "lossless", "exhigh", "higher", "standard"}
+
+var qualityNames = map[string]string{
+	"jymaster": "超清母带",
+	"jyeffect": "沉浸环绕声",
+	"hires":    "Hi-Res",
+	"lossless": "无损",
+	"exhigh":   "极高",
+	"higher":   "较高",
+	"standard": "标准",
+}
+
+func qualityName(level string) string {
+	if name, ok := qualityNames[level]; ok {
+		return name
+	}
+	return level
+}
+
 func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 	defer func() {
 		e := recover()
@@ -96,6 +116,12 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 
 	logErr(patchCard(progressMsgID, progressCard(fetchInfo, fmt.Sprintf("MusicID: %d", musicID))))
 
+	// 语音方式最终会转码为 opus, 无需拉无损源; 文件方式从最高音质开始
+	levelIdx := 0
+	if mode == modeVoice {
+		levelIdx = 3 // exhigh (320k), 作为 opus 转码源已透明
+	}
+
 	b := api.NewBatch(
 		api.BatchAPI{
 			Key:  api.SongDetailAPI,
@@ -103,7 +129,7 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 		},
 		api.BatchAPI{
 			Key:  api.SongUrlAPI,
-			Json: api.CreateSongURLJson(api.SongURLConfig{Ids: []int{musicID}}),
+			Json: api.CreateSongURLJson(api.SongURLConfig{Ids: []int{musicID}, Level: qualityLevels[levelIdx]}),
 		},
 	)
 	if b.Do(data).Error != nil {
@@ -122,10 +148,23 @@ func processMusic(musicID int, mode string, msg incomingMsg) (err error) {
 		logErr(patchCard(progressMsgID, errorCard(fetchInfoFailed, fmt.Sprintf("MusicID: %d", musicID))))
 		return errors.New(fetchInfoFailed)
 	}
+
+	// 文件方式按预估大小逐级降低音质, 直到能装进飞书 30MB 上限
+	for mode == modeFile && songURL.Data[0].Size > maxIMFileSize && levelIdx < len(qualityLevels)-1 {
+		levelIdx++
+		res, err := api.GetSongURL(data, api.SongURLConfig{Ids: []int{musicID}, Level: qualityLevels[levelIdx]})
+		if err != nil || len(res.Data) == 0 || res.Data[0].Url == "" {
+			logrus.Errorln(err)
+			break
+		}
+		songURL.Data[0] = res.Data[0]
+	}
+
 	if songURL.Data[0].Url == "" {
 		logErr(patchCard(progressMsgID, errorCard(getUrlFailed, fmt.Sprintf("MusicID: %d", musicID))))
 		return errors.New(getUrlFailed)
 	}
+	songInfo.Quality = qualityName(strFromAny(songURL.Data[0].Level))
 
 	songInfo.FromChatID = msg.ChatID
 	songInfo.FromUserID = msg.SenderOpenID

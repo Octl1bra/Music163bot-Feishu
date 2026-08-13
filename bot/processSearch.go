@@ -34,6 +34,6 @@ func processSearch(keyword string, msg incomingMsg) (err error) {
 			Artists: songArtists,
 		})
 	}
-	_, err = replyCard(msg, searchCard(keyword, items))
+	_, err = replyCard(msg, searchCard(keyword, items, msg.ChatType))
 	return err
 }
