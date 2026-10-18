@@ -119,6 +119,25 @@ cp .env.example .env  # 填写配置
 docker compose up -d
 ```
 
+### TKE 部署（v2）
+
+正式运行分支为 `v2`。现有 `Docker Image Build` workflow 仅在 `v2` push 或手动触发时构建，手动选择其他分支会跳过；原有 Debug build 继续产出二进制附件，不发布镜像。镜像为 `ghcr.io/octl1bra/music163bot-feishu`，保留 `latest` 供 compose 使用，并发布完整提交 SHA 标签；集群使用构建摘要中记录的 `bonjour.fund/octl1bra/music163bot-feishu@sha256:…` 不可变镜像。构建仅使用 `GITHUB_TOKEN`，不接入公司 1Password 服务账号。
+
+[kubernetes/deployment.yaml](kubernetes/deployment.yaml) 部署到 `internal-tools`，单副本、`Recreate`，保留镜像内的 ffmpeg。机器人主动建立飞书 WebSocket 连接，**没有监听端口、Service、Ingress 或 HTTP 探针**。rollout 成功只证明容器运行，需再看连接日志并通过飞书发送 `/status`、点歌与语音转换确认业务正常。
+
+部署前由集成方准备 namespace、镜像拉取 Secret `ghcr-mirror-pull-secret` 与运行配置 Secret `music163bot-env`。后者至少提供 `APP_ID`、`APP_SECRET`，迁移原有 `MUSIC_U` 及需要保留的 `BOT_ADMIN` 等配置；其余可选变量见 [.env.example](.env.example)。不要把 Secret 值写进清单或 Git。清单显式设置 `DATABASE=/app/data/cache.db`，优先于 Secret 中可能遗留的 `DATABASE`。
+
+SQLite、下载缓存与日志分别位于 `/app/data`、`/app/cache`、`/app/log` 的 `emptyDir`；同一 Pod 内容器重启可保留，Pod 替换/重新部署会丢弃。不搬旧 SQLite、不创建 PVC，缓存记录与 `/status` 统计从新库开始；日志也会输出到 stdout。临时数据大小受配额限制，长期运行需关注磁盘用量。
+
+调用方先配置好 kubectl 凭据。脚本默认显式选择 `bonjour`，可用 `KUBE_CONTEXT` 覆盖，不修改全局 kubeconfig；使用构建输出的真实 digest：
+
+```bash
+# 使用构建摘要中的真实 digest
+./scripts/deploy.sh bonjour.fund/octl1bra/music163bot-feishu@sha256:<digest>
+```
+
+脚本校验镜像格式，显式指定 `internal-tools`，提交清单，等待 rollout 并核对 Deployment 与 Pod 镜像。它不会配置凭据或触发构建。首次切换先停止 Zeabur 旧实例，再启动 TKE，避免两端同时消费飞书事件。回滚时用相同脚本传入上一个已验证的 digest；如回到 Zeabur，先停止 TKE 实例再恢复旧服务。镜像回滚不会恢复临时数据库。
+
 ## 📝 注意事项
 
 - 飞书 IM 文件上传上限 30MB：超限的无损文件会自动回退为语音方式发送。

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: music163bot
+  namespace: internal-tools
+  labels:
+    app: music163bot
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: music163bot
+  template:
+    metadata:
+      labels:
+        app: music163bot
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: ghcr-mirror-pull-secret
+      containers:
+        - name: music163bot
+          image: __IMAGE__
+          workingDir: /app
+          envFrom:
+            - secretRef:
+                name: music163bot-env
+          env:
+            - name: DATABASE
+              value: /app/data/cache.db
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+              ephemeral-storage: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+              ephemeral-storage: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: cache
+              mountPath: /app/cache
+            - name: log
+              mountPath: /app/log
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: cache
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: log
+          emptyDir:
+            sizeLimit: 256Mi
