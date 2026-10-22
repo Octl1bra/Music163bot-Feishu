@@ -57,10 +57,19 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Check final image without credentials
+        env:
+          IMAGE_DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: |
+          image="${REGISTRY}/${IMAGE_NAME}@${IMAGE_DIGEST}"
+          docker run --rm --network none --entrypoint /app/Music163bot-Feishu "$image" -h
+          docker run --rm --network none --entrypoint ffmpeg "$image" -version
 
       - name: Record immutable deployment image
         env:

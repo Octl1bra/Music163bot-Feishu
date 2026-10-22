@@ -20,7 +20,7 @@ var config map[string]string
 var _ConfigPath *string
 
 var (
-	runtimeVer   = fmt.Sprintf(runtime.Version())                     // 编译环境
+	runtimeVer   = runtime.Version()                                  // 编译环境
 	_VersionName = ""                                                 // 程序版本
 	commitSHA    = ""                                                 // 编译哈希
 	buildTime    = ""                                                 // 编译日期

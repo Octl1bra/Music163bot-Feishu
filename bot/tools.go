@@ -69,7 +69,7 @@ func verifyMD5(filePath string, md5str string) (bool, error) {
 		return false, err
 	}
 	if hex.EncodeToString(md5hash.Sum(nil)) != md5str {
-		return false, fmt.Errorf(md5VerFailed)
+		return false, fmt.Errorf("%s", md5VerFailed)
 	}
 	return true, nil
 }

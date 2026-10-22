@@ -1,8 +1,6 @@
 module github.com/Octl1bra/Music163bot-Feishu
 
-go 1.22.0
-
-toolchain go1.22.1
+go 1.27.3
 
 require (
 	github.com/XiaoMengXinX/163KeyMarker v0.0.0-20221030134715-67afb724a936
